@@ -1,0 +1,8 @@
+share/
+node_modules/
+bin/
+har_and_cookies/
+lib/
+lib64
+include
+=77
