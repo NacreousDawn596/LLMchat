@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron')
+const { app, BrowserWindow, ipcMain, screen } = require('electron')
 const { spawn } = require('child_process')
 const path = require('path')
 
@@ -6,12 +6,24 @@ let flaskProcess = null
 let mainWindow = null
 
 function createWindow() {
+    const { screen } = require('electron');
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const { width, height } = primaryDisplay.workAreaSize;
+    const { bounds } = primaryDisplay;
+
+    const windowWidth = Math.floor(width / 4);
+    const windowHeight = Math.floor(height * 0.8);
+
+    const xPosition = bounds.x + (bounds.width - windowWidth);
+    const yPosition = bounds.y + (bounds.height - windowHeight);
+
     mainWindow = new BrowserWindow({
-        width: 400,
-        height: 800,
-        frame: false, // Remove default window frame
-        titleBarStyle: 'hidden', // For macOS
-        titleBarStyle: 'hiddenInset',
+        width: windowWidth,
+        height: windowHeight,
+        x: xPosition,
+        y: yPosition,
+        frame: false,
+        titleBarStyle: 'hidden',
         transparent: true,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
@@ -19,15 +31,20 @@ function createWindow() {
             contextIsolation: true,
             webSecurity: true
         }
-    })
+    });
 
-    mainWindow.loadURL('http://localhost:5000/')
+    mainWindow.loadURL('http://localhost:5000/');
 }
 
 app.whenReady().then(async () => {
-    flaskProcess = spawn('python', ['./main.py']);    
-    await waitForServer();    
-    createWindow();    
+    const flaskServerPath = path.join(
+        process.resourcesPath,
+        'flask-server' 
+    );
+
+    flaskProcess = spawn(flaskServerPath);
+    await waitForServer();
+    createWindow();
     mainWindow.webContents.on('did-finish-load', () => {
         mainWindow.webContents.send('server-ready');
     });
@@ -37,10 +54,10 @@ ipcMain.handle('chat', async (event, query) => {
     try {
         const response = await fetch('http://localhost:5000/chat', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(query)
         });
-        
+
         return await response.text();
     } catch (error) {
         console.error('Chat error:', error);
