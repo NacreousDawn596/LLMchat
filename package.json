@@ -1,4 +1,5 @@
 {
+  "$schema": "https://json.schemastore.org/package",
   "name": "LLmClient",
   "version": "1.0.0-alpha",
   "description": "an LLM client built using electronJS and python flask",
