@@ -26,13 +26,14 @@ A delightful cross-platform desktop chat application powered by AI, built with ð
 ### Installation
 1. Clone the repository
 ```bash
-git clone https://github.com/yourusername/LLMchat.git
+git clone https://github.com/NacreousDawn596/LLMchat.git
 cd LLMchat
 ```
 
-2. Install Node.js dependencies
+2. Install Node.js and PIP dependencies
 ```bash
 npm install
+pip install --user -r requirements.txt
 ```
 
 3. Start the application
