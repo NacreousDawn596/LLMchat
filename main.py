@@ -8,6 +8,8 @@ import certifi
 import requests
 import sys
 import json
+import markdown
+from markdown.extensions.fenced_code import FencedCodeExtension
 
 os.environ['SSL_CERT_FILE'] = certifi.where()
 
@@ -56,6 +58,14 @@ def download_image(url, session_id):
     except Exception as e:
         print(f"Error downloading image: {e}")
         return None
+    
+@app.template_filter('neomarkdown')
+def convert_markdown(text):
+    return markdown.markdown(text, extensions=[
+        FencedCodeExtension(),
+        'tables',
+        'codehilite'
+    ])
 
 @app.route('/generate_image', methods=['POST'])
 def handle_generate_image():

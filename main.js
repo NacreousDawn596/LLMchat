@@ -290,36 +290,40 @@ class ChatUI {
         if (images && images.length > 0) {
             const imageContainer = document.createElement('div');
             imageContainer.className = 'image-grid mt-2';
-
             images.forEach(img => {
                 const imgEl = document.createElement('img');
                 imgEl.className = 'chat-image';
-
-                // Handle different image types
                 if (img instanceof File) {
-                    // New uploads - use object URL
                     imgEl.src = URL.createObjectURL(img);
                     imgEl.dataset.filename = img.name;
                 } else if (img.persisted) {
-                    // Server-stored images - use direct URL
                     imgEl.src = `/assets/temp_uploads/${img.name}?t=${Date.now()}`;
                     imgEl.dataset.filename = img.name;
                 }
-
                 imageContainer.appendChild(imgEl);
             });
-
             messageDiv.appendChild(imageContainer);
         }
 
-        // Content handling
+        // Markdown content handling
         const contentDiv = document.createElement('div');
+        contentDiv.className = 'message-content';
+
+        // Convert Markdown to HTML and sanitize
+        const markedContent = marked.parse(content);
+        const cleanContent = DOMPurify.sanitize(markedContent);
+
         if (isWebSearch) {
-            contentDiv.innerHTML = `${content.replace(/\n/g, '<br>')}
+            contentDiv.innerHTML = `${cleanContent} 
             <span class="web-search-badge">Web</span>`;
         } else {
-            contentDiv.textContent = content;
+            contentDiv.innerHTML = cleanContent;
         }
+
+        // Highlight code blocks
+        contentDiv.querySelectorAll('pre code').forEach(block => {
+            hljs.highlightElement(block);
+        });
 
         messageDiv.appendChild(contentDiv);
         this.elements.chatMessages.appendChild(messageDiv);

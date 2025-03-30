@@ -6,6 +6,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LLMchat</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <!-- Add Markdown CSS -->
+    <style>
+        .markdown-body {
+            box-sizing: border-box;
+            min-width: 200px;
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 45px;
+        }
+
+        .message pre {
+            background: #1e293b !important;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+        }
+
+        .message code {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9em;
+        }
+    </style>
     <link rel="stylesheet" href="/assets/style.css">
 </head>
 
@@ -54,7 +77,7 @@
                             </label>
                             <span class="text-gray-400">Web</span>
                         </div>
-                        <button class="send-button bg-indigo-600 hover:bg-indigo-700 rounded-lg p-2">
+                        <button class="send-button bg-purple-600 hover:bg-purple-700 rounded-lg p-2">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20"
                                 fill="currentColor">
                                 <path
@@ -68,6 +91,21 @@
     </section>
     <script>
         var PORT = {{ PORT }}
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.2/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.5/purify.min.js"></script>
+    <script>
+        // Configure Markdown
+        marked.setOptions({
+            highlight: function (code, lang) {
+                return hljs.highlightAuto(code).value;
+            },
+            breaks: true
+        });
+
+        // Initialize Highlight.js
+        hljs.highlightAll();
     </script>
     <script src="/assets/main.js"></script>
 </body>
