@@ -26,6 +26,7 @@ function createWindow() {
         frame: false,
         titleBarStyle: 'hidden',
         transparent: true,
+        alwaysOnTop: true,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             nodeIntegration: false,
