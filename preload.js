@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getConfig: () => ipcRenderer.invoke('get-config'),
     onServerReady: (callback) => ipcRenderer.on('server-ready', callback),
     closeWindow: () => ipcRenderer.send('close-window'),
+    minimizeWindow: () => ipcRenderer.send('minimize-window')
 });
 
 

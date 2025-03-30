@@ -16,7 +16,7 @@ function createWindow() {
     const windowHeight = Math.floor(height * 0.8); 
     
     const xPosition = bounds.x + (bounds.width - windowWidth); 
-    const yPosition = bounds.y + (bounds.height - windowHeight); 
+    const yPosition = process.platform === 'win32' ? bounds.y + (height - windowHeight) : bounds.y + (bounds.height - windowHeight); 
 
     mainWindow = new BrowserWindow({
         width: windowWidth,
@@ -44,6 +44,11 @@ app.whenReady().then(async () => {
     mainWindow.webContents.on('did-finish-load', () => {
         mainWindow.webContents.send('server-ready');
     });
+});
+
+ipcMain.on('minimize-window', () => {
+    const win = BrowserWindow.getFocusedWindow();
+    if (win) win.minimize();
 });
 
 ipcMain.handle('chat', async (event, query) => {

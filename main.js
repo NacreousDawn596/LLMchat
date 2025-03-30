@@ -349,6 +349,13 @@ class ChatUI {
     }
 }
 
+document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key === 'm') {
+        e.preventDefault();
+        window.electronAPI.minimizeWindow();
+    }
+});
+
 document.addEventListener('DOMContentLoaded', () => {
     new ChatUI();
 });
