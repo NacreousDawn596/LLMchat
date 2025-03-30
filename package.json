@@ -1,28 +1,41 @@
 {
+  "name": "LLmClient",
+  "version": "1.0.0-alpha",
+  "description": "an LLM client built using electronJS and python flask",
+  "author": "Aferiad Kamal",
+  "main": "app.js",
   "build": {
     "appId": "com.llm.client",
-    "name": "LLmClient",
     "productName": "LLM Client",
-    "author": "Aferiad Kamal",
-    "version": "1.0.0a",
-    "description": "an LLM client built using electronJS and python flask",
     "directories": {
       "output": "dist"
     },
+    "asar": false,
+    "asarUnpack": [
+      "**/python*",
+      "**/flask-server*"
+    ],
     "files": [
       "**/*",
       "!main.py",
-      "!*.spec"
+      "!*.spec",
+      "!venv/**/*"
     ],
     "extraResources": [
       {
-        "from": "dist/flask-server${ext}",
+        "from": "dist/flask-server",
         "to": "flask-server$",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "linux": {
-      "target": ["deb", "rpm", "appimage"],
+      "target": [
+        "deb",
+        "rpm",
+        "appimage"
+      ],
       "category": "Utility"
     },
     "win": {
@@ -30,11 +43,16 @@
     }
   },
   "scripts": {
+    "start": "electron app.js",
+    "build:app": "npm run build:electron && npm run build:flask",
+    "build:electron": "parcel build index.html --dist-dir dist",
+    "build:flask": "pyinstaller --onefile flask-server/main.py",
     "pack": "electron-builder --dir",
     "dist": "electron-builder"
   },
   "devDependencies": {
     "electron": "^35.1.2",
-    "electron-builder": "^26.0.12"
+    "electron-builder": "^26.0.12",
+    "parcel": "^2.14.4"
   }
 }

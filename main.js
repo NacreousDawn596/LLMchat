@@ -15,7 +15,9 @@ class ChatUI {
             modelSelect: document.querySelector('#model-select'),
             webSearchToggle: document.querySelector('#web-search-toggle'),
             statusIndicator: document.querySelector('#config-status'),
-            closeButton: document.querySelector('#close-btn')
+            closeButton: document.querySelector('#close-btn'),
+            fileInput: document.querySelector('#file-input'),
+            imagePreview: document.querySelector('#image-preview'),
         };
 
         this.elements.closeButton.addEventListener('click', () => window.electronAPI.closeWindow());
@@ -27,6 +29,18 @@ class ChatUI {
         try {
             const response = await window.electronAPI.getHistory(this.sessionId);
             this.state.history = response.messages || [];
+            this.state.history.forEach(msg => {
+                if (msg.images) {
+                    msg.images = msg.images.map(img => {
+                        // Convert server filenames to File-like objects
+                        return {
+                            name: img,
+                            // Add identification property
+                            persisted: true
+                        };
+                    });
+                }
+            });
             this.renderMessages();
         } catch (error) {
             console.error('Failed to load history:', error);
@@ -38,10 +52,17 @@ class ChatUI {
         this.elements.chatMessages.innerHTML = '';
 
         this.state.history.forEach(msg => {
+            // Convert stored filenames to image references
+            const images = msg.images?.map(img => ({
+                name: img,
+                persisted: true
+            })) || [];
+
             this.appendMessage(
                 msg.content,
                 msg.role === 'user' ? 'user' : 'ai',
-                msg.web_search || false
+                msg.web_search || false,
+                images // Pass properly formatted images array
             );
         });
 
@@ -54,8 +75,56 @@ class ChatUI {
         this.renderMessages();
     }
 
+    handleFileUpload(e) {
+        const files = Array.from(e.target.files);
+        this.state.attachedImages = files;
+
+        files.forEach(file => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                // Pass both the src and file data
+                this.createImagePreview(event.target.result, {
+                    name: file.name,
+                    persisted: false
+                });
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    createImagePreview(src, fileData) {
+        const container = document.createElement('div');
+        container.className = 'image-preview';
+
+        const img = document.createElement('img');
+        if (fileData?.persisted) {
+            img.src = `/assets/temp_uploads/${fileData.name}?t=${Date.now()}`;
+        } else {
+            img.src = src;
+            if (fileData) {
+                img.dataset.filename = fileData.name;
+            }
+        }
+
+        const removeBtn = document.createElement('div');
+        removeBtn.className = 'remove-image-btn';
+        removeBtn.innerHTML = '×';
+        removeBtn.onclick = () => {
+            container.remove();
+            this.state.attachedImages = this.state.attachedImages.filter(
+                f => f.name !== img.dataset.filename
+            );
+        };
+
+        container.appendChild(img);
+        container.appendChild(removeBtn);
+        this.elements.imagePreview.appendChild(container);
+    }
+
+
     setupEventListeners() {
         this.elements.sendButton.addEventListener('click', () => this.handleSubmit());
+        this.elements.fileInput.addEventListener('change', (e) => this.handleFileUpload(e));
         this.elements.chatInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) this.handleSubmit();
         });
@@ -87,62 +156,172 @@ class ChatUI {
 
     async handleSubmit() {
         const message = this.elements.chatInput.value.trim();
-        if (!message || this.state.isStreaming) return;
+        if ((!message && !this.state.attachedImages?.length) || this.state.isStreaming) return;
 
-        this.state.isStreaming = true;
-        this.elements.chatInput.value = '';
-        this.disableInput();
+        if (message.startsWith('/imagine ')) {
+            const prompt = message.slice(9).trim();
+            if (!prompt) return;
 
-        try {
-            this.appendMessage(message, 'user');
-            const response = await this.streamResponse(message);
-            this.appendMessage(response, 'ai', this.state.webSearch);
-        } catch (error) {
-            this.appendMessage('Error: Failed to get response', 'ai');
-        } finally {
-            this.state.isStreaming = false;
-            this.enableInput();
+            this.state.isStreaming = true;
+            this.elements.chatInput.value = '';
+            this.disableInput();
+
+            // Inside the /imagine handling block:
+            try {
+                // Append user command
+                this.appendMessage(`/imagine ${prompt}`, 'user');
+
+                // Generate image
+                const response = await fetch(`http://localhost:${PORT}/generate_image`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: this.sessionId,
+                        prompt: prompt
+                    })
+                });
+
+                if (!response.ok) throw new Error('Image generation failed');
+                const { image_url } = await response.json();
+
+                // Extract filename from URL and create proper reference
+                const filename = image_url.split('/').pop();
+
+                // Append AI response with image
+                this.appendMessage(
+                    'Generated image:',
+                    'ai',
+                    false,
+                    [{ name: filename, persisted: true }]  // Note the persisted flag
+                );
+
+            } catch (error) {
+                this.appendMessage('Error generating image. ' + error.message, 'ai');
+            } finally {
+                this.state.isStreaming = false;
+                this.enableInput();
+            }
+        } else {
+
+            const formData = new FormData();
+            formData.append('query', message);
+            formData.append('session_id', this.sessionId);
+
+            this.state.attachedImages?.forEach((file, index) => {
+                formData.append(`images`, file, file.name);
+            });
+
+            this.state.isStreaming = true;
+            this.elements.chatInput.value = '';
+            this.disableInput();
+
+            try {
+                this.appendMessage(message, 'user', false, this.state.attachedImages);
+                const response = await this.streamResponse(message, formData);
+                this.appendMessage(response, 'ai', this.state.webSearch);
+            } catch (error) {
+                this.appendMessage('Error: Failed to get response', 'ai');
+            } finally {
+                this.state.attachedImages = [];
+                this.elements.imagePreview.innerHTML = '';
+                this.state.isStreaming = false;
+                this.enableInput();
+            }
         }
     }
 
-    async streamResponse(message) {
+    async streamResponse(message, formData) {
         const container = this.createMessageContainer('ai');
         let fullResponse = '';
 
         try {
-            const responseText = await window.electronAPI.sendQuery({
-                query: message,
-                session_id: this.sessionId
+            const response = await fetch(`http://localhost:${PORT}/chat`, {
+                method: 'POST',
+                body: formData
             });
 
-            const chunks = responseText.split('\n\n');
-            for (const chunk of chunks) {
-                if (chunk.startsWith('data: ')) {
-                    const content = chunk.slice(6).trim();
-                    fullResponse += content;
-                    container.innerHTML = fullResponse;
-                    this.scrollToBottom();
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value, { stream: true });
+                const lines = chunk.split('\n\n');
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        try {
+                            const data = JSON.parse(line.slice(6));
+                            if (data.error) {
+                                container.textContent += `\n[ERROR: ${data.error}]`;
+                            } else if (data.content) {
+                                fullResponse += data.content;
+                                container.textContent = fullResponse;
+                            }
+                            this.scrollToBottom();
+                        } catch (e) {
+                            console.error('Parsing error:', e);
+                        }
+                    }
                 }
             }
 
             return fullResponse;
         } catch (error) {
-            container.textContent += '\n\n[Response interrupted]';
+            console.error('Stream error:', error);
+            container.textContent = 'Error: Failed to get response. Check server connection.';
             throw error;
+        } finally {
+            this.scrollToBottom();
         }
     }
 
-    appendMessage(content, type, isWebSearch = false) {
+    appendMessage(content, type, isWebSearch = false, images = []) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${type}-message`;
 
-        if (isWebSearch) {
-            messageDiv.innerHTML = `${content.replace(/\n/g, '<br>')}
-              <span class="web-search-badge">Web</span>`;
-        } else {
-            messageDiv.innerHTML = content.replace(/\n/g, '<br>').replace(/ /g, '&nbsp;');
+        // Handle images
+        if (images && images.length > 0) {
+            const imageContainer = document.createElement('div');
+            imageContainer.className = 'image-grid mt-2';
+
+            images.forEach(img => {
+                const imgEl = document.createElement('img');
+                imgEl.className = 'chat-image';
+
+                // Handle different image types
+                if (img instanceof File) {
+                    // New uploads - use object URL
+                    imgEl.src = URL.createObjectURL(img);
+                    imgEl.dataset.filename = img.name;
+                } else if (img.persisted) {
+                    // Server-stored images - use direct URL
+                    imgEl.src = `/assets/temp_uploads/${img.name}?t=${Date.now()}`;
+                    imgEl.dataset.filename = img.name;
+                }
+
+                imageContainer.appendChild(imgEl);
+            });
+
+            messageDiv.appendChild(imageContainer);
         }
 
+        // Content handling
+        const contentDiv = document.createElement('div');
+        if (isWebSearch) {
+            contentDiv.innerHTML = `${content.replace(/\n/g, '<br>')}
+            <span class="web-search-badge">Web</span>`;
+        } else {
+            contentDiv.textContent = content;
+        }
+
+        messageDiv.appendChild(contentDiv);
         this.elements.chatMessages.appendChild(messageDiv);
         this.scrollToBottom();
     }

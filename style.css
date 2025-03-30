@@ -203,3 +203,109 @@ input:checked + .slider:before {
         padding: 1rem 8rem 1rem 2rem;
     }
 }
+
+.image-preview-container {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+    flex-wrap: wrap;
+}
+
+.image-preview {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    border: 2px solid #334155;
+}
+
+.image-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.remove-image-btn {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: rgba(239, 68, 68, 0.8);
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.chat-image {
+    max-width: 300px;
+    border-radius: 0.75rem;
+    margin-top: 0.5rem;
+    border: 1px solid #334155;
+}
+
+.file-input-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    background: #1e293b;
+    transition: all 0.2s;
+}
+
+.file-input-label:hover {
+    background: #2d3748;
+}
+
+.file-input-label svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    color: #818cf8;
+}
+
+.input-container {
+    padding: 1rem;
+    background: rgba(30, 41, 59, 0.9);
+    backdrop-filter: blur(4px);
+    border-top: 1px solid #334155;
+}
+
+.chat-input {
+    padding-right: 100px !important;
+}
+
+.file-input-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 0.5rem;
+    background: #1e293b;
+    transition: all 0.2s;
+}
+
+.file-input-label:hover {
+    background: #2d3748;
+}
+
+.image-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.chat-image {
+    max-width: 200px;
+    border-radius: 0.5rem;
+    margin-top: 0.5rem;
+    border: 1px solid #334155;
+    background: #1e293b;
+    padding: 2px;
+}
