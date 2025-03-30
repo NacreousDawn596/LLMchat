@@ -32,10 +32,8 @@ class ChatUI {
             this.state.history.forEach(msg => {
                 if (msg.images) {
                     msg.images = msg.images.map(img => {
-                        // Convert server filenames to File-like objects
                         return {
                             name: img,
-                            // Add identification property
                             persisted: true
                         };
                     });
@@ -52,7 +50,6 @@ class ChatUI {
         this.elements.chatMessages.innerHTML = '';
 
         this.state.history.forEach(msg => {
-            // Convert stored filenames to image references
             const images = msg.images?.map(img => ({
                 name: img,
                 persisted: true
@@ -62,7 +59,7 @@ class ChatUI {
                 msg.content,
                 msg.role === 'user' ? 'user' : 'ai',
                 msg.web_search || false,
-                images // Pass properly formatted images array
+                images 
             );
         });
 
@@ -82,7 +79,6 @@ class ChatUI {
         files.forEach(file => {
             const reader = new FileReader();
             reader.onload = (event) => {
-                // Pass both the src and file data
                 this.createImagePreview(event.target.result, {
                     name: file.name,
                     persisted: false
@@ -166,12 +162,9 @@ class ChatUI {
             this.elements.chatInput.value = '';
             this.disableInput();
 
-            // Inside the /imagine handling block:
             try {
-                // Append user command
                 this.appendMessage(`/imagine ${prompt}`, 'user');
 
-                // Generate image
                 const response = await fetch(`http://localhost:${PORT}/generate_image`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -184,10 +177,8 @@ class ChatUI {
                 if (!response.ok) throw new Error('Image generation failed');
                 const { image_url } = await response.json();
 
-                // Extract filename from URL and create proper reference
                 const filename = image_url.split('/').pop();
 
-                // Append AI response with image
                 this.appendMessage(
                     'Generated image:',
                     'ai',
@@ -286,7 +277,6 @@ class ChatUI {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${type}-message`;
 
-        // Handle images
         if (images && images.length > 0) {
             const imageContainer = document.createElement('div');
             imageContainer.className = 'image-grid mt-2';
@@ -305,11 +295,9 @@ class ChatUI {
             messageDiv.appendChild(imageContainer);
         }
 
-        // Markdown content handling
         const contentDiv = document.createElement('div');
         contentDiv.className = 'message-content';
 
-        // Convert Markdown to HTML and sanitize
         const markedContent = marked.parse(content);
         const cleanContent = DOMPurify.sanitize(markedContent);
 
@@ -320,7 +308,6 @@ class ChatUI {
             contentDiv.innerHTML = cleanContent;
         }
 
-        // Highlight code blocks
         contentDiv.querySelectorAll('pre code').forEach(block => {
             hljs.highlightElement(block);
         });
